@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#101a20" />
+  <title>Realm Rush — Crownfall</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="game-shell">
+    <canvas id="game" aria-label="Realm Rush strategy game"></canvas>
+    <div class="vignette"></div>
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">✦</span><div><b>REALM RUSH</b><small>CROWNFALL</small></div></div>
+      <div class="stat-pill"><span class="coin">◆</span><b id="gold">180</b><small>GOLD</small></div>
+      <div class="stat-pill population"><span class="people">♟</span><b id="pop">0 / 30</b><small>ARMY</small></div>
+      <button id="pause-btn" class="icon-btn" aria-label="Pause" title="Pause">Ⅱ</button>
+    </header>
+    <div class="objective"><span class="target-dot"></span><span id="objective-text">Defeat the Crimson Crown</span></div>
+    <section class="orders" aria-label="Squad orders">
+      <button id="march-btn" class="order-btn active"><span>⚔</span><b>ATTACK</b><small>Enemy keep</small></button>
+      <button id="guard-btn" class="order-btn"><span>⬟</span><b>GUARD</b><small>Hold position</small></button>
+    </section>
+    <div class="minimap-frame"><canvas id="minimap" width="180" height="112" aria-label="Map overview"></canvas><span class="map-label">BATTLEFIELD</span></div>
+    <section class="army-panel" aria-label="Recruit troops">
+      <div class="panel-heading"><div><span class="eyebrow">BUILD YOUR LEGION</span><b>Recruit units</b></div><span id="selected-count">0 selected</span></div>
+      <div class="unit-cards">
+        <button class="unit-card" data-unit="militia"><span class="unit-icon militia-icon">⚔</span><span class="unit-name">Militia</span><span class="unit-cost"><i>◆</i> 40</span><span class="unit-hint">Balanced · 1 pop</span></button>
+        <button class="unit-card" data-unit="archer"><span class="unit-icon archer-icon">➶</span><span class="unit-name">Archer</span><span class="unit-cost"><i>◆</i> 65</span><span class="unit-hint">Ranged · 1 pop</span></button>
+        <button class="unit-card" data-unit="knight"><span class="unit-icon knight-icon">♞</span><span class="unit-name">Knight</span><span class="unit-cost"><i>◆</i> 110</span><span class="unit-hint">Heavy · 2 pop</span></button>
+      </div>
+      <div class="panel-footer"><span>Tap the field to move your selected troops</span><span class="hotkey">SPACE <i>Pause</i></span></div>
+    </section>
+    <div id="toast" class="toast" role="status"></div>
+    <div id="modal" class="modal visible">
+      <div class="modal-card intro-card">
+        <div class="crest">♜</div><div class="eyebrow">A REALM ON THE EDGE</div>
+        <h1>THE CROWN<br><em>AWAITS.</em></h1>
+        <p>Raise your banner, build an army, and bring down the Crimson Keep. The frontier won't wait.</p>
+        <div class="intro-facts"><span>✦ <b>3</b> troop classes</span><span>◈ <b>1</b> rival kingdom</span><span>⚔ <b>∞</b> glory</span></div>
+        <button id="play-btn" class="primary-btn">ENTER THE BATTLE <span>→</span></button>
+        <small class="controls-note">Tap a troop to recruit · Tap the field to command</small>
+      </div>
+    </div>
+    <div id="pause-overlay" class="pause-overlay"><div><span class="eyebrow">BATTLE PAUSED</span><button id="resume-btn" class="primary-btn">RESUME <span>→</span></button></div></div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
