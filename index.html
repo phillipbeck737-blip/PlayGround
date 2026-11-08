@@ -22,7 +22,7 @@
       <button id="march-btn" class="order-btn active"><span>⚔</span><b>ATTACK</b><small>Enemy keep</small></button>
       <button id="guard-btn" class="order-btn"><span>⬟</span><b>GUARD</b><small>Hold position</small></button>
     </section>
-    <div class="minimap-frame"><canvas id="minimap" width="180" height="112" aria-label="Map overview"></canvas><span class="map-label">BATTLEFIELD</span></div>
+    <div class="minimap-frame"><canvas id="minimap" width="180" height="112" aria-label="Map overview; tap or drag to scout"></canvas><span class="map-label">BATTLEFIELD <button id="center-btn" type="button" title="Center camera on your army (F)">CENTER</button></span></div>
     <section class="army-panel" aria-label="Recruit troops">
       <div class="panel-heading"><div><span class="eyebrow">BUILD YOUR LEGION</span><b>Recruit units</b></div><span id="selected-count">0 selected</span></div>
       <div class="unit-cards">
@@ -30,7 +30,7 @@
         <button class="unit-card" data-unit="archer"><span class="unit-icon archer-icon">➶</span><span class="unit-name">Archer</span><span class="unit-cost"><i>◆</i> 65</span><span class="unit-hint">Ranged · 1 pop</span></button>
         <button class="unit-card" data-unit="knight"><span class="unit-icon knight-icon">♞</span><span class="unit-name">Knight</span><span class="unit-cost"><i>◆</i> 110</span><span class="unit-hint">Heavy · 2 pop</span></button>
       </div>
-      <div class="panel-footer"><span>Tap the field to move your selected troops</span><span class="hotkey">SPACE <i>Pause</i></span></div>
+      <div class="panel-footer"><span>Tap to command · drag to select · arrows/minimap to scout</span><span class="hotkey">1–3 <i>Recruit</i> · F <i>Center</i> · SPACE <i>Pause</i></span></div>
     </section>
     <div id="toast" class="toast" role="status"></div>
     <div id="modal" class="modal visible">

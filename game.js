@@ -7,7 +7,7 @@
   const W = 1800, H = 1200;
   const ui = {gold: document.getElementById('gold'), pop: document.getElementById('pop'), objective: document.getElementById('objective-text'), selected: document.getElementById('selected-count'), toast: document.getElementById('toast'), modal: document.getElementById('modal'), pause: document.getElementById('pause-overlay')};
   const colors = {grass:'#82945d', darkgrass:'#788b56', lightgrass:'#94a46b', road:'#b9a177', roadEdge:'#9b8967', blue:'#598eaa', red:'#bd5b4b'};
-  let vw=0,vh=0,dpr=1,camera={x:300,y:600,zoom:1}, running=false,paused=false,ended=false, gold=180, elapsed=0, incomeClock=0, enemyClock=10, spawnCount=0, order='attack', commandPoint=null, drag=null, toastTimer=0;
+  let vw=0,vh=0,dpr=1,camera={x:300,y:600,zoom:1},cameraFollow=true,mapDragging=false, running=false,paused=false,ended=false, gold=180, elapsed=0, incomeClock=0, enemyClock=10, spawnCount=0, order='attack', commandPoint=null, drag=null, toastTimer=0;
   let units=[], particles=[], decor=[], selected=new Set();
   const bases={player:{x:235,y:600,hp:1200,max:1200,color:'#4d8da4',label:'YOUR KEEP'},enemy:{x:1565,y:600,hp:1150,max:1150,color:'#c85a4c',label:'CRIMSON KEEP'}};
   const unitStats={militia:{cost:40,pop:1,hp:95,damage:13,range:28,speed:57,rate:.86,color:'#6e9dae',name:'Militia',reach:28},archer:{cost:65,pop:1,hp:62,damage:12,range:150,speed:48,rate:1.25,color:'#6da57c',name:'Archer',reach:150},knight:{cost:110,pop:2,hp:210,damage:27,range:31,speed:43,rate:1.05,color:'#b18a51',name:'Knight',reach:31},raider:{cost:0,pop:1,hp:80,damage:11,range:27,speed:42,rate:1.05,color:'#ce6756',name:'Raider',reach:27},brute:{cost:0,pop:2,hp:185,damage:22,range:31,speed:33,rate:1.25,color:'#d18e54',name:'Brute',reach:31}};
@@ -17,13 +17,13 @@
   const random=rand(90421);
   for(let i=0;i<180;i++){let x=35+random()*(W-70),y=35+random()*(H-70);if(Math.abs(y-600)<100&&x>270&&x<1530)continue;decor.push({x,y,r:5+random()*11,type:random()<.63?'tree':random()<.5?'stone':'bush',tone:random()});}
   function showToast(text){ui.toast.textContent=text;ui.toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>ui.toast.classList.remove('show'),1500);}
-  function updateHud(){ui.gold.textContent=Math.floor(gold);let p=units.filter(u=>u.team==='player').reduce((n,u)=>n+u.pop,0);ui.pop.textContent=`${p} / 30`;ui.selected.textContent=`${selected.size} selected`;ui.objective.textContent=`Crimson Keep · ${Math.max(0,Math.ceil(bases.enemy.hp/bases.enemy.max*100))}%`;}
+  function updateHud(){ui.gold.textContent=Math.floor(gold);let p=units.filter(u=>u.team==='player').reduce((n,u)=>n+u.pop,0);ui.pop.textContent=`${p} / 30`;ui.selected.textContent=`${selected.size} selected`;ui.objective.textContent=`Crimson Keep · ${Math.max(0,Math.ceil(bases.enemy.hp/bases.enemy.max*100))}%`;document.querySelectorAll('.unit-card').forEach(btn=>{const st=unitStats[btn.dataset.unit];btn.disabled=!running||ended||gold<st.cost||p+st.pop>30;});}
   function startGame(){
     units=[];particles=[];selected.clear();gold=180;elapsed=0;incomeClock=0;enemyClock=10;spawnCount=0;order='attack';commandPoint=null;paused=false;ended=false;running=true;
     bases.player.hp=bases.player.max;bases.enemy.hp=bases.enemy.max;
     document.querySelectorAll('.order-btn').forEach(b=>b.classList.toggle('active',b.id==='march-btn'));
     ui.pause.classList.remove('visible');ui.modal.classList.add('hidden');
-    camera.x=360;camera.y=600;
+    camera.x=360;camera.y=600;cameraFollow=true;
     for(let i=0;i<3;i++)addUnit('militia','player',280+random()*35,575+random()*50,false);
     for(let i=0;i<2;i++)addUnit('archer','player',270+random()*30,540+random()*95,false);
     addUnit('raider','enemy',1515,590,false);
@@ -40,17 +40,24 @@
   document.getElementById('pause-btn').addEventListener('click',togglePause);
   document.getElementById('resume-btn').addEventListener('click',togglePause);
   function togglePause(){if(!running||ended)return;paused=!paused;ui.pause.classList.toggle('visible',paused);}
-  window.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();togglePause();}if(e.key==='Escape'&&paused)togglePause();});
+  window.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();togglePause();return;}if(e.key==='Escape'&&paused){togglePause();return;}if(!running||paused||ended||e.repeat)return;const key=e.key.toLowerCase();if(key==='f'){cameraFollow=true;showToast('Camera following your army');}else if(key==='a')setOrder('attack');else if(key==='g')setOrder('guard');else if(key==='1'||key==='2'||key==='3'){const type=['militia','archer','knight'][Number(key)-1];addUnit(type,'player',bases.player.x+55+(random()-.5)*35,bases.player.y+(random()-.5)*110);updateHud();}else if(['arrowup','arrowdown','arrowleft','arrowright','w','s','d'].includes(key)){cameraFollow=false;const step=70/camera.zoom;if(key==='arrowup'||key==='w')camera.y-=step;if(key==='arrowdown'||key==='s')camera.y+=step;if(key==='arrowleft'||key==='a')camera.x-=step;if(key==='arrowright'||key==='d')camera.x+=step;}});
   function screenToWorld(sx,sy){return{x:(sx-vw/2)/camera.zoom+camera.x,y:(sy-vh/2)/camera.zoom+camera.y};}
   function worldToScreen(x,y){return{x:(x-camera.x)*camera.zoom+vw/2,y:(y-camera.y)*camera.zoom+vh/2};}
-  canvas.addEventListener('pointerdown',e=>{if(!running||paused||ended)return;canvas.setPointerCapture(e.pointerId);const r=canvas.getBoundingClientRect();drag={sx:e.clientX-r.left,sy:e.clientY-r.top,x:e.clientX-r.left,y:e.clientY-r.top,moved:false};});
-  canvas.addEventListener('pointermove',e=>{if(drag){const r=canvas.getBoundingClientRect();drag.x=e.clientX-r.left;drag.y=e.clientY-r.top;if(Math.hypot(drag.x-drag.sx,drag.y-drag.sy)>8)drag.moved=true;}});
-  canvas.addEventListener('pointerup',e=>{if(!drag)return;const d=drag;drag=null;if(!running||paused)return;const r=canvas.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;if(d.moved){const a=screenToWorld(Math.min(d.sx,sx),Math.min(d.sy,sy)),b=screenToWorld(Math.max(d.sx,sx),Math.max(d.sy,sy));selected.clear();units.forEach(u=>{if(u.team==='player'&&u.x>=a.x&&u.x<=b.x&&u.y>=a.y&&u.y<=b.y){u.selected=true;selected.add(u.id)}else u.selected=false;});updateHud();return;}
+  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  canvas.addEventListener('pointerdown',e=>{if(!running||paused||ended)return;canvas.setPointerCapture(e.pointerId);const r=canvas.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;drag={sx,sy,x:sx,y:sy,moved:false,pan:e.button===2,lastX:sx,lastY:sy};});
+  canvas.addEventListener('pointermove',e=>{if(drag){const r=canvas.getBoundingClientRect();drag.x=e.clientX-r.left;drag.y=e.clientY-r.top;if(Math.hypot(drag.x-drag.sx,drag.y-drag.sy)>8)drag.moved=true;if(drag.pan){cameraFollow=false;camera.x-=(drag.x-drag.lastX)/camera.zoom;camera.y-=(drag.y-drag.lastY)/camera.zoom;drag.lastX=drag.x;drag.lastY=drag.y;}}});
+  canvas.addEventListener('pointerup',e=>{if(!drag)return;const d=drag;drag=null;if(!running||paused)return;if(d.pan)return;const r=canvas.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;if(d.moved){const a=screenToWorld(Math.min(d.sx,sx),Math.min(d.sy,sy)),b=screenToWorld(Math.max(d.sx,sx),Math.max(d.sy,sy));selected.clear();units.forEach(u=>{if(u.team==='player'&&u.x>=a.x&&u.x<=b.x&&u.y>=a.y&&u.y<=b.y){u.selected=true;selected.add(u.id)}else u.selected=false;});updateHud();return;}
     const p=screenToWorld(sx,sy), clicked=[...units].reverse().find(u=>u.team==='player'&&Math.hypot(u.x-p.x,u.y-p.y)<22/camera.zoom);
     if(clicked){if(!e.shiftKey){selected.clear();units.forEach(u=>u.selected=false);}clicked.selected=!clicked.selected;if(clicked.selected)selected.add(clicked.id);else selected.delete(clicked.id);updateHud();return;}
     const squad=units.filter(u=>u.team==='player'&&(!selected.size||selected.has(u.id)));if(squad.length){commandPoint={x:p.x,y:p.y};squad.forEach(u=>u.goal={x:p.x+(random()-.5)*34,y:p.y+(random()-.5)*34});showToast(selected.size?'Squad orders received':'All troops moving');}
   });
-  mini.addEventListener('pointerdown',e=>{const r=mini.getBoundingClientRect();camera.x=(e.clientX-r.left)/r.width*W;camera.y=(e.clientY-r.top)/r.height*H;});
+  function scoutMap(e){const r=mini.getBoundingClientRect();camera.x=(e.clientX-r.left)/r.width*W;camera.y=(e.clientY-r.top)/r.height*H;cameraFollow=false;clampCamera();}
+  mini.addEventListener('pointerdown',e=>{mini.setPointerCapture(e.pointerId);mapDragging=true;scoutMap(e);});
+  mini.addEventListener('pointermove',e=>{if(mapDragging)scoutMap(e);});
+  mini.addEventListener('pointerup',()=>{mapDragging=false;});
+  mini.addEventListener('pointercancel',()=>{mapDragging=false;});
+  document.getElementById('center-btn').addEventListener('click',()=>{cameraFollow=true;showToast('Camera following your army');});
+  canvas.addEventListener('wheel',e=>{e.preventDefault();camera.zoom=Math.max(.35,Math.min(.9,camera.zoom*(e.deltaY<0?1.08:.92)));clampCamera();},{passive:false});
   function spawnEnemy(){const type=spawnCount%4===3?'brute':'raider';addUnit(type,'enemy',1490,555+random()*90,false);spawnCount++;if(spawnCount%4===0)addUnit('raider','enemy',1490,550+random()*100,false);}
   function update(dt){if(!running||paused||ended)return;elapsed+=dt;incomeClock+=dt;enemyClock-=dt;while(incomeClock>=2){gold+=5;incomeClock-=2;updateHud();}if(enemyClock<=0){spawnEnemy();enemyClock=Math.max(7.5,13-elapsed*.025)+(random()*2);}
     for(const p of particles){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=14*dt;}particles=particles.filter(p=>p.life>0);
@@ -69,7 +76,7 @@
   }
   function strike(attacker,target){target.hp-=attacker.damage;attacker.hit=.12;attacker.face=target.x>=attacker.x?1:-1;const ranged=attacker.range>60;particles.push({x:target.x,y:target.y-6,vx:(random()-.5)*17,vy:-23-random()*15,life:.45,color:attacker.team==='player'?'#f0d47a':'#ee8870',text:''});if(ranged)particles.push({x:attacker.x,y:attacker.y-8,vx:(target.x-attacker.x)*1.3,vy:(target.y-attacker.y)*1.3,life:.22,color:'#e6d49a',text:'bolt'});if(target.hp<=0){if(target.team==='enemy'&&attacker.team==='player'){gold+=10;particles.push({x:target.x,y:target.y-12,vx:0,vy:-22,life:.75,color:'#f4cf67',text:'+10'});updateHud();}}}
   function finish(win){ended=true;running=false;selected.clear();const card=ui.modal.querySelector('.modal-card');card.innerHTML=`<div class="crest">${win?'♛':'♜'}</div><div class="eyebrow">${win?'THE REALM IS YOURS':'YOUR BANNER HAS FALLEN'}</div><h1>${win?'CROWN\n':'FALLEN\n'}<em>${win?'CLAIMED':'KINGDOM'}</em></h1><p>${win?'The Crimson Keep is no more. Your name will echo through the ages.':'The rival host has breached your walls. Rally your forces and try again.'}</p><button id="play-btn" class="primary-btn">${win?'PLAY AGAIN':'RALLY AGAIN'} <span>→</span></button>`;document.getElementById('play-btn').addEventListener('click',startGame);ui.modal.classList.remove('hidden');updateHud();}
-  function clampCamera(){const hx=vw/(2*camera.zoom),hy=vh/(2*camera.zoom);camera.x=Math.max(hx,Math.min(W-hx,camera.x));camera.y=Math.max(hy,Math.min(H-hy,camera.y));}
+  function clampCamera(){const hx=vw/(2*camera.zoom),hy=vh/(2*camera.zoom);camera.x=hx>=W/2?W/2:Math.max(hx,Math.min(W-hx,camera.x));camera.y=hy>=H/2?H/2:Math.max(hy,Math.min(H-hy,camera.y));}
   function rr(c,x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r);}
   function drawTerrain(){ctx.fillStyle=colors.grass;ctx.fillRect(0,0,W,H);
     for(let i=0;i<36;i++){const x=(i*173+55)%W,y=(i*281+99)%H;ctx.fillStyle=i%2?'#ffffff08':'#34462809';ctx.beginPath();ctx.ellipse(x,y,95+(i%5)*13,40+(i%4)*12,i*.5,0,Math.PI*2);ctx.fill();}
@@ -112,5 +119,6 @@
     ctx.restore();drawMinimap();
   }
   function drawMinimap(){const w=mini.width,h=mini.height;mctx.clearRect(0,0,w,h);mctx.fillStyle='#84945f';mctx.fillRect(0,0,w,h);mctx.fillStyle='#6d8b7b';mctx.fillRect(0,h*.8,w,h*.2);mctx.strokeStyle='#b9a177';mctx.lineWidth=11;mctx.beginPath();mctx.moveTo(7,h*.5);mctx.quadraticCurveTo(w*.5,h*.47,w-7,h*.5);mctx.stroke();for(const d of decor){if(d.type==='tree'){mctx.fillStyle='#526e46';mctx.fillRect(d.x/W*w-1,d.y/H*h-1,2,2);}}mctx.fillStyle='#508ea5';mctx.fillRect(bases.player.x/W*w-5,bases.player.y/H*h-5,10,10);mctx.fillStyle='#c05a4d';mctx.fillRect(bases.enemy.x/W*w-5,bases.enemy.y/H*h-5,10,10);for(const u of units){mctx.fillStyle=u.team==='player'?'#d7e4c1':'#f29070';mctx.beginPath();mctx.arc(u.x/W*w,u.y/H*h,2,0,Math.PI*2);mctx.fill();}const left=(camera.x-vw/2/camera.zoom)/W*w,top=(camera.y-vh/2/camera.zoom)/H*h,rw=vw/camera.zoom/W*w,rh=vh/camera.zoom/H*h;mctx.strokeStyle='#f2e4bd';mctx.lineWidth=1.5;mctx.strokeRect(left,top,rw,rh);}
-  let last=performance.now();function frame(now){const dt=Math.min(.04,(now-last)/1000);last=now;if(running&&!paused&&!ended){const allies=units.filter(u=>u.team==='player');if(allies.length){const cx=allies.reduce((n,u)=>n+u.x,0)/allies.length,cy=allies.reduce((n,u)=>n+u.y,0)/allies.length;camera.x+=(cx+120-camera.x)*Math.min(1,dt*.35);camera.y+=(cy-camera.y)*Math.min(1,dt*.4);}update(dt);}clampCamera();drawWorld();requestAnimationFrame(frame);}requestAnimationFrame(frame);
+  updateHud();
+  let last=performance.now();function frame(now){const dt=Math.min(.04,(now-last)/1000);last=now;if(running&&!paused&&!ended){if(cameraFollow){const allies=units.filter(u=>u.team==='player');if(allies.length){const cx=allies.reduce((n,u)=>n+u.x,0)/allies.length,cy=allies.reduce((n,u)=>n+u.y,0)/allies.length;camera.x+=(cx+120-camera.x)*Math.min(1,dt*.35);camera.y+=(cy-camera.y)*Math.min(1,dt*.4);}}update(dt);}clampCamera();drawWorld();requestAnimationFrame(frame);}requestAnimationFrame(frame);
 })();
